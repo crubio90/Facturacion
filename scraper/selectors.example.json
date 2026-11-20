@@ -1,0 +1,27 @@
+{
+  "login": {
+    "url_template": "{base_url}/{system_slug}/",
+    "username_selector": "input[name='user'], input#user, input[name='usuario']",
+    "password_selector": "input[name='pass'], input#pass, input[name='clave']",
+    "submit_selector": "button[type='submit'], input[type='submit'], button#ingresar",
+    "logged_in_indicator": "iframe#main, #menu, .menu-principal, a[href*='logout'], a[href*='salir']"
+  },
+  "accounts_receivable": {
+    "navigate_url_template": "{base_url}/{system_slug}/form/cuentacorriente/index.php",
+    "frame_selector": "",
+    "table_row_selector": "table tbody tr",
+    "next_page_selector": "a.siguiente, button[title='Siguiente'], input[name='siguiente']",
+    "columns": {
+      "rut": 0,
+      "razon_social": 1,
+      "tipo_dte_nombre": 2,
+      "folio": 3,
+      "fecha_emision": 4,
+      "fecha_vencimiento": 5,
+      "monto_total": 6,
+      "monto_pagado": 7,
+      "saldo_pendiente": 8,
+      "estado": 9
+    }
+  }
+}

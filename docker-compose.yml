@@ -1,0 +1,113 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: daberusa_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-daberusa_cobranza}
+      POSTGRES_USER: ${POSTGRES_USER:-daberusa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-daberusa_secure_password_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - daberusa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-daberusa} -d ${POSTGRES_DB:-daberusa_cobranza}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daberusa_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: daberusa_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-daberusa}:${POSTGRES_PASSWORD:-daberusa_secure_password_change_me}@db:5432/${POSTGRES_DB:-daberusa_cobranza}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-to-a-long-random-secret-key-at-least-32-chars}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      RISK_REMINDER_THRESHOLD: ${RISK_REMINDER_THRESHOLD:-3}
+      AUTO_SEED_DEMO_USERS: ${AUTO_SEED_DEMO_USERS:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200,http://localhost:8080,http://localhost}
+      SCRAPER_SERVICE_URL: http://scraper:8001
+      SCRAPER_INTERNAL_TOKEN: ${SCRAPER_INTERNAL_TOKEN:-change-this-internal-scraper-token}
+      SMTP_DRY_RUN: ${SMTP_DRY_RUN:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-cobranza@daberusa.cl}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Cobranza DABERUSA}
+      COMPANY_NAME: ${COMPANY_NAME:-DABERUSA}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daberusa_net
+
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: daberusa_scraper
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_API_URL: http://backend:8000
+      SCRAPER_INTERNAL_TOKEN: ${SCRAPER_INTERNAL_TOKEN:-change-this-internal-scraper-token}
+      SCRAPER_MODE: ${SCRAPER_MODE:-mock}
+      SCRAPE_SCHEDULE_CRON: ${SCRAPE_SCHEDULE_CRON:-30 8,14 * * 1-5}
+      SCRAPE_TIMEZONE: ${SCRAPE_TIMEZONE:-America/Santiago}
+      SCRAPER_RUN_ON_STARTUP: ${SCRAPER_RUN_ON_STARTUP:-true}
+      FACTURACION_BASE_URL: ${FACTURACION_BASE_URL:-https://www.facturacion.cl}
+      FACTURACION_SYSTEM_SLUG: ${FACTURACION_SYSTEM_SLUG:-daberusa}
+      FACTURACION_USERNAME: ${FACTURACION_USERNAME:-}
+      FACTURACION_PASSWORD: ${FACTURACION_PASSWORD:-}
+      FACTURACION_HEADLESS: ${FACTURACION_HEADLESS:-true}
+      FACTURACION_TIMEOUT_MS: ${FACTURACION_TIMEOUT_MS:-30000}
+    ports:
+      - "${SCRAPER_PORT:-8001}:8001"
+    volumes:
+      - ./scraper/debug_screenshots:/app/debug_screenshots
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daberusa_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: daberusa_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - daberusa_net
+
+volumes:
+  daberusa_pgdata:
+
+networks:
+  daberusa_net:
+    driver: bridge
