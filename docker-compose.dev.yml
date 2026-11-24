@@ -1,0 +1,14 @@
+# Override de desarrollo local con hot-reload para backend y scraper.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+    entrypoint: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+
+  scraper:
+    volumes:
+      - ./scraper:/app
+      - ./scraper/debug_screenshots:/app/debug_screenshots
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

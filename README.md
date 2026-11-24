@@ -45,12 +45,29 @@ Sistema web de gestión y trazabilidad de cobranzas desarrollado para **DABERUSA
 
 ## Puesta en Marcha Rápida con Docker Compose
 
+### Opción A — Script automático (1 comando)
+
+**macOS / Linux / Git Bash:**
+```bash
+git clone https://github.com/crubio90/Facturacion.git && cd Facturacion && bash scripts/setup-local.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/crubio90/Facturacion.git; Set-Location Facturacion; powershell -ExecutionPolicy Bypass -File .\scripts\setup-local.ps1
+```
+
+### Opción B — Manual paso a paso
+
 ```bash
 # 1. Crear archivo de variables de entorno
 cp .env.example .env
 
 # 2. Construir y levantar los 4 contenedores
 docker compose up --build -d
+
+# (Opcional) Modo desarrollo con hot-reload en backend y scraper:
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # 3. Verificar estado de los servicios
 docker compose ps
